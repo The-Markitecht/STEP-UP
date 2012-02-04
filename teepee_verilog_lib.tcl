@@ -188,7 +188,7 @@ proc tpv_sm_write_state_machine {sm_name} {
             set jump_code "${width}$default_dest_num /* $default_dest_name */"
             if [info exists state::${sname}::branches] {
                 # write Verilog code for one or more conditional transitions.            
-                foreach branch [set state::${sname}::branches] {
+                foreach branch [lreverse [set state::${sname}::branches]] {
                     foreach {condition dest_name} $branch {
                         set dest_state_num [find_state_num $sm_name $state_num $dest_name]
                         set jump_code "(($condition) ? ${width}$dest_state_num /* $dest_name */ : $jump_code)"
