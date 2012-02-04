@@ -169,7 +169,7 @@ $state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
                         outln "            if ( $condition ) $state_reg_name <= ${width}$dest_state_num ; // $dest_name"
                     }
                 }
-                {                }
+                #{                }
                 outln "            else begin"
                 outln "                $default_jump_code"
                 outln "            end"                                   
@@ -537,7 +537,7 @@ proc tpv_sm_states {sm_name states_body} {
 
     set states_body [string map [list "\r\n" "\n" "\r" "\n"] $states_body]
     
-    set label_re { ^ \s* ( \: \s* (\w+) \s* \: )? \s* ( (\w+) ( \s+ .+ )? ) $ }
+    set label_re { ^ \s* ( \: \s* (\w+) \s* \: )? (\#)? \s* ( (\w+) ( \s+ .+ )? ) $ }
     #set chars_consumed 0
     set block {}
     foreach state_body [split $states_body "\n"] {
@@ -547,10 +547,13 @@ proc tpv_sm_states {sm_name states_body} {
                 #outln "// >>>$state_body<<<"
                 set state_name {} ;# re-initialize any variables that are populated by optional parts of the regex; those might not match.
                 set code_remainder {}
-                if { ! [regexp -expanded -nocase $label_re $state_body junk junk2 state_name code code_first_word code_remainder]} {
+                set comment_mark {}
+                if { ! [regexp -expanded -nocase $label_re $state_body junk junk2 state_name comment_mark code code_first_word code_remainder]} {
                     error "Syntax error in FSM $sm_name, in short-syntax line: [string trim $state_body]"
                 }
-                if {[info complete $state_body]} {
+                if {$comment_mark == {#}} {
+                    #outln "// $code_remainder" ;# can't output this; it would have to be accumulated and output along with the state that follows.
+                } elseif {[info complete $state_body]} {
                     # this line is recognized as a state body.  does it have a label at the front, or does it need an anonymous name assigned?
                     if {$state_name == {}} {
                         set state_name "anonymous[llength [set ::fsm::${sm_name}::states]]"
