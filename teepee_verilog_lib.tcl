@@ -122,15 +122,22 @@ proc tpv_sm_write_state_machine {sm_name} {
         # write Verilog code for each state, including reset state.
         for {set state_num 0} {$state_num < $num_states} {incr state_num} {
             set sname [lindex $states $state_num]
+
+            # format comments for this state.
+            set comments {}
+            foreach chunk [set state::${sname}::comments] {
+                append comments "\n            // $chunk"
+            }
+
             if {$state_num == 0} {
                 outln "
         if ((( $reset_signal ) == [vbool $reset_level strict]) || ($state_reg_name == $width$state_num)) begin
-            // reset
+            // reset $comments
                 "
             } else {
                 outln "
         end else if ($state_reg_name == $width$state_num) begin
-            // state $sname
+            // state $sname $comments
                 "
             }
             
@@ -480,6 +487,7 @@ proc tpv_sm_state {sm_name state_name state_body} {
     }
     namespace eval ::fsm::${sm_name}::state::${state_name} {  
         set body {}
+        set comments [list]
     }
     
     # implement any "with" signals that are in effect right now.
@@ -549,9 +557,10 @@ proc tpv_sm_states {sm_name states_body} {
 
     set states_body [string map [list "\r\n" "\n" "\r" "\n"] $states_body]
     
-    set label_re { ^ \s* ( \: \s* (\w+) \s* \: )? (\#)? \s* ( (\w+) ( \s+ .+ )? ) $ }
+    set label_re { ^ \s* ( \: \s* (\w+) \s* \: )? (\#{1,2})? \s* ( (\w+) ( \s+ .+ )? ) $ }
     #set chars_consumed 0
     set block {}
+    set comments [list]
     foreach state_body [split $states_body "\n"] {
         if {$block == {}} {    
             # not building up an enclosed block right now.  process each line.
@@ -564,7 +573,11 @@ proc tpv_sm_states {sm_name states_body} {
                     error "Syntax error in FSM $sm_name, in short-syntax line: [string trim $state_body]"
                 }
                 if {$comment_mark == {#}} {
-                    #outln "// $code_remainder" ;# can't output this; it would have to be accumulated and output along with the state that follows.
+                    # comment; not a real state; accumulate this and memorize it along with the next state that follows.
+                    # this only sees full-line comments that fall between the intended state and the previous state.
+                    # it does not see inline comments at the end of the state body.  
+                    # that would require an additional command alias in tpv_sm_state such as ## .
+                    lappend comments $code 
                 } elseif {[info complete $state_body]} {
                     # this line is recognized as a state body.  does it have a label at the front, or does it need an anonymous name assigned?
                     if {$state_name == {}} {
@@ -572,6 +585,10 @@ proc tpv_sm_states {sm_name states_body} {
                     }
                     #outln "// $state_body"
                     tpv_sm_state $sm_name $state_name $code
+                    # now prepend any loose comments to those that were defined within this state.
+                    set cvn "::fsm::${sm_name}::state::${state_name}::comments"
+                    set $cvn [concat $comments [set $cvn]]
+                    set comments [list] ;# reset accumulation.
                 } else {
                     # this line has an unmatched Tcl delimiter.  begin building a code block?
                     if { [string tolower $code_first_word] == {with} } {
