@@ -149,34 +149,46 @@ proc tpv_sm_write_state_machine {sm_name} {
                 set default_dest_name [lindex $djl 1]
             }
             set default_dest_num [find_state_num $sm_name $state_num $default_dest_name]
-            if {$default_dest_modifier == {routine}} {
-                set default_jump_code "${default_dest_name}_return_to_state <= ${width}[expr {$state_num + 1}];  \
-$state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
-            } elseif {$default_dest_modifier == {return}} {
-#patch: how do you know which return_to register to use here?
-#guess i'll have to specify it in the syntax.  bummer.
-#try searching the list of all called routines in the FSM.  return to the lowest positioned
-#one that's above the return line.
-                set default_jump_code "$state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
-            } else {
-                set default_jump_code "$state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
-            }
+#patch: routine/return keywords broken by reworking for multiple jump destinations; fix it in future.            
+#            if {$default_dest_modifier == {routine}} {
+#                set default_jump_code "${default_dest_name}_return_to_state <= ${width}[expr {$state_num + 1}];  \
+#$state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
+#            } elseif {$default_dest_modifier == {return}} {
+# #patch: how do you know which return_to register to use here?
+# #guess i'll have to specify it in the syntax.  bummer.
+# #try searching the list of all called routines in the FSM.  return to the lowest positioned
+# #one that's above the return line.
+#                set default_jump_code "$state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
+#            } else {
+#                set default_jump_code "$state_reg_name <= ${width}$default_dest_num ; // $default_dest_name"
+#            }
+#            if [info exists state::${sname}::branches] {
+#                # write Verilog code for one or more conditional transitions.
+#                foreach branch [set state::${sname}::branches] {
+#                    foreach {condition dest_name} $branch {
+#                        set dest_state_num [find_state_num $sm_name $state_num $dest_name]
+#                        outln "            if ( $condition ) $state_reg_name <= ${width}$dest_state_num ; // $dest_name"
+#                    }
+#                }
+#                #{                }
+#                outln "            else begin"
+#                outln "                $default_jump_code"
+#                outln "            end"                                   
+#            } else {
+#                # there are no conditional transitions.  write Verilog code for an unconditional one.
+#                outln "            $default_jump_code"
+#            }
+            set jump_code "${width}$default_dest_num /* $default_dest_name */"
             if [info exists state::${sname}::branches] {
-                # write Verilog code for one or more conditional transitions.
+                # write Verilog code for one or more conditional transitions.            
                 foreach branch [set state::${sname}::branches] {
                     foreach {condition dest_name} $branch {
                         set dest_state_num [find_state_num $sm_name $state_num $dest_name]
-                        outln "            if ( $condition ) $state_reg_name <= ${width}$dest_state_num ; // $dest_name"
+                        set jump_code "(($condition) ? ${width}$dest_state_num /* $dest_name */ : $jump_code)"
                     }
-                }
-                #{                }
-                outln "            else begin"
-                outln "                $default_jump_code"
-                outln "            end"                                   
-            } else {
-                # there are no conditional transitions.  write Verilog code for an unconditional one.
-                outln "            $default_jump_code"
+                }            
             }
+            outln "            $state_reg_name <= $jump_code ; "
         }
 
         # write FSM footer code.
