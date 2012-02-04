@@ -7,7 +7,16 @@
 
 # FSM builder; see notes in source of cycle_accurate_model_test 
 # see also K:\Microcontrollers\Projects\adc1801test\source, which demonstrated the need for FSM builder.
-# possible product name: FISTcl (FInite State Tcl) pronounced "fist tickle" as one word.
+# possible product name: FISTcl (FInite State Tcl) pronounced "fist tickle" as one word, emphasis on first syllable.
+
+set long_syntax_brainstorm {
+    long syntax is very undesirable compared to short syntax.
+    deprecate it.  instead introduce a 3rd syntax which works like short syntax, but allows
+    a state to occupy any number of lines until the next state label is encountered.
+    that way it doesn't need open & close braces.
+    allow anonymous states to use a simple label such as :: (which is empty label) or better yet
+    just one colon, so it won't clash with Tcl.
+}
 
 set routines_brainstorm {
     to really make subroutines i need an easy way to declare a "return to state" register, which is automatically
