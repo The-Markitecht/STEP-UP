@@ -1,6 +1,25 @@
+#  TeePee
+#  Copyright 2009 Mark Hubbard, a.k.a. "TheMarkitecht"
+#  http://www.TheMarkitecht.com
 #
-# TeePee preprocessor for C source code.
-# 2/2009 by Mark Hubbard.
+#  Project home:  (url)
+#  TeePee is the Tcl Preprocessor for C and other languages.
+#
+#  This file is part of TeePee.
+#
+#  TeePee is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  TeePee is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License
+#  along with TeePee.  If not, see <https://www.gnu.org/licenses/>.
+
 
 # in future rename this to StepUp: Simple Tcl-Enhanced Preprocessor Upgrade
 
@@ -66,7 +85,7 @@ proc include {file_name {section_name {}}} {
         set re { \< \< - @ \s* \w+ \s* - \> \> }
         if {[regexp -expanded -indices -start $section_start_pos $re $content next_indices]} {
             set section_end_pos [expr [lindex $next_indices 0] - 1]
-        }        
+        }
         set content [string range $content $section_start_pos $section_end_pos]
     }
 
@@ -82,7 +101,7 @@ proc teepee_process {in_file_name out_file_name} {
 
 
     puts "TeePee: writing $out_file_name"
-    
+
     # test TeePee integration with the rest of the tool chain.
     #file copy -force $in_file_name $out_file_name
     #return
@@ -97,7 +116,7 @@ proc teepee_process {in_file_name out_file_name} {
 
     # evaluate all blocks of Tcl script enclosed in markers   <<-   ->>
     # the result is inserted in place of the script block.
-    set cursor 0 
+    set cursor 0
     set re { (?: \< \< - \s+ (.*?) \s+ - \> \> ){1,1}? }
     while {[regexp -indices -expanded -nocase -start $cursor $re $content ind scriptind]} {
         set match_start [lindex $ind 0]
@@ -109,7 +128,7 @@ proc teepee_process {in_file_name out_file_name} {
         uplevel #0 $script
         set content [string replace $content $match_start $match_end $::new_content]
         set cursor $match_start
-        #incr cursor [string length $::new_content] 
+        #incr cursor [string length $::new_content]
         # don't increment the cursor there.  begin re-scanning at the start of the new content.
         # this catches include files, and any other misc script that might generate additional substitution tokens.
         set ::new_content {}
@@ -117,7 +136,7 @@ proc teepee_process {in_file_name out_file_name} {
 
     # replace all Tcl variables prefixed with $$
     # an optional array index in parenteses is also accepted.
-    set cursor 0 
+    set cursor 0
     set re { \$\$ ( [a-z0-9_:]+ (?: \( [a-z0-9_ ]+ \) )? ) }
     while {[regexp -indices -expanded -nocase -start $cursor $re $content ind nameind]} {
         set match_start [lindex $ind 0]
@@ -128,9 +147,9 @@ proc teepee_process {in_file_name out_file_name} {
         set result [uplevel #0 set $name]
         set content [string replace $content $match_start $match_end $result]
         set cursor $match_start
-        #incr cursor [string length $result] 
+        #incr cursor [string length $result]
     }
-    
+
     # write new source code content.
     set outf [open $out_file_name w]
     puts $outf $content
@@ -152,7 +171,7 @@ proc teepee_main {} {
                 set ::new_content {}
                 set cla [file join $teepee_dir $cla]
                 set ::source_dir [file dirname $cla]
-                
+
                 set ::include_paths [list $::source_dir]
                 set outfn [file rootname $cla]_tp.c
                 teepee_process $cla $outfn
@@ -172,7 +191,7 @@ proc teepee_main {} {
 # #####################################################################
 # main line
 
-# other Tcl script can set teepee_lib_only and then source this file, to 
+# other Tcl script can set teepee_lib_only and then source this file, to
 # gain access to the teepee processor procs as a library.
 if { ! [info exists teepee_lib_only]} {
     teepee_main
